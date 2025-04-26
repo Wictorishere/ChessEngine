@@ -50,12 +50,17 @@ class Pawn:
             elif row == row1 + 1 and abs(col - col1) == 1: 
                 if(board[row][col] >= 0):
                     return False
+            elif col == col1 and board[row][col1] != 0:
+                return False
+
         else:
             if(board[row][col] < 0):
                 return False 
             elif row == row1 - 1 and abs(col - col1) == 1: 
                 if(board[row][col] <= 0):
                     return False
+            elif col == col1 and board[row][col1] != 0:
+                return False
             
         
             
