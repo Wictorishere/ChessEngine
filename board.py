@@ -3,12 +3,15 @@ from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QLabel
 from PyQt5.QtGui import QPainter, QColor, QPixmap
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QInputDialog
+from mpmath.functions.expintegrals import square_exp_arg
+
 from King import King
 from Queen import Queen
 from Rook import Rook
 from Knight import Knight
 from Bishop import Bishop
 from Pawn import Pawn
+from Move import Move
 
 
 class Square(QLabel):
@@ -21,7 +24,7 @@ class Square(QLabel):
         self.setFixedSize(100, 100)
         self.setAlignment(Qt.AlignCenter)
         self.setStyleSheet("background-color: {};".format(self.color))
-        self.moves = {}
+
 
     def setPiece(self, piece):
         self.piece = piece
@@ -39,6 +42,10 @@ class ChessBoard(QWidget):
         self.squares = [[None for _ in range(8)] for _ in range(8)]
         self.selected_square = None
         self.turn = True
+        self.pieceD = None
+        self.moves = []
+        self.row = None
+        self.col = None
         
         self.white_king = King(True, (0, 3))
         self.black_king = King(False, (7, 3))
@@ -153,29 +160,63 @@ class ChessBoard(QWidget):
     def onSquareClicked(self, row, col):
         board = self.board
         square = self.squares[row][col]
+        self.pieceD = square.piece
 
+        #if there is a piece in selected square in last select
         if self.selected_square:
             piece = self.selected_square.piece
             if piece and self.turn == piece.isWhite:
                 origin = piece.position
+
+                if square.piece and square.piece.isWhite == piece.isWhite:
+                    self.selected_square.setStyleSheet(f"background-color: {self.selected_square.color};")
+                    self.selected_square = square
+                    self.row = square.piece.position[0]
+                    self.col = square.piece.position[1]
+                    square.setStyleSheet("background-color: #03ff6c;")
+                    return
+
+                #if it is available to move the piece
                 if piece.canMove((row, col)) and piece.isValidMove((row, col), board):
-                    if self.castling(piece, self.board, piece.isWhite, (row, col)):
+                    #if there is an enpassant availabla
+                    if piece.name == "Pawn" and self.enPassant(row, col) and piece.enpassant:
                         self.selected_square.clearPiece()
                         piece.move((row, col), board)
                         square.setPiece(piece)
+                        Prow = row - 1 if piece.isWhite else row + 1
+                        self.squares[Prow][col].clearPiece()
+                        self.board[Prow][col] = 0
+                        self.turn = not self.turn
 
-                        if self.check(piece.isWhite):
-                            square.setStyleSheet("background-color: #e63946;")
-                            QTimer.singleShot(500, lambda: square.setStyleSheet(f"background-color: {square.color};"))
-                            square.clearPiece()
-                            piece.move(origin, board)
-                            self.squares[origin[0]][origin[1]].setPiece(piece)
-                            print("It's Check!")
+                    elif(piece.name != "Pawn" or not piece.enpassant):
+                        if piece.name == "Pawn" and abs(col - piece.position[1]) == 1:
+                            if board[row][col] == 0:
+                                square.setStyleSheet("background-color: #e63946;")
+                                QTimer.singleShot(500,lambda: square.setStyleSheet(f"background-color: {square.color};"))
+                                print("Invalid Move")
+                                return
+                        #castling
+                        if self.castling(piece, self.board, piece.isWhite, (row, col)):
+                            self.selected_square.clearPiece()
+                            piece.move((row, col), board)
+                            square.setPiece(piece)
+
+                            if self.check(piece.isWhite):
+                                square.setStyleSheet("background-color: #e63946;")
+                                QTimer.singleShot(500, lambda: square.setStyleSheet(f"background-color: {square.color};"))
+                                square.clearPiece()
+                                piece.move(origin, board)
+                                square.setPiece(self.pieceD)
+                                self.squares[origin[0]][origin[1]].setPiece(piece)
+                                print("It's Check!")
+                            else:
+                                self.turn = not self.turn
+                                move = Move(piece.name, True if self.pieceD else False, self.row, self.col, row, col, self.pieceD)
+                                self.moves.append(move)
                         else:
-                            self.turn = not self.turn
-                    else:
-                        print("Castling Unavailable")
+                            print("Castling Unavailable")
                 else:
+                    #select pieces
                     square.setStyleSheet("background-color: #e63946;")
                     QTimer.singleShot(500, lambda: square.setStyleSheet(f"background-color: {square.color};"))
                     print("Invalid Move")
@@ -186,11 +227,18 @@ class ChessBoard(QWidget):
 
             self.selected_square.setStyleSheet(
                 f"background-color: {self.selected_square.color};")
+            self.row = None
+            self.col = None
+            self.pieceD = None
+            if(piece.name == "Pawn"):
+                piece.enpassant = False
             self.selected_square = None
 
         else:
             if square.piece:
                 self.selected_square = square
+                self.row = square.piece.position[0]
+                self.col = square.piece.position[1]
                 square.setStyleSheet("background-color: #03ff6c;")
 
         if self.checkMate(True):
@@ -303,11 +351,16 @@ class ChessBoard(QWidget):
 
         return True
 
+    def enPassant(self, row, col):
+        if not self.moves:
+            return False
+        lastmove = self.moves[-1]
 
-               
-                    
-    def unpassant():
-        pass
+        if lastmove.pieceName == "Pawn":
+            if abs(lastmove.row - lastmove.Drow) == 2 and lastmove.col == col:
+                return True
+
+        return False
 
     def promotion(self, pawn):
         row, col = pawn.position
@@ -338,3 +391,4 @@ if __name__ == "__main__":
     board = ChessBoard()
     board.show()
     sys.exit(app.exec_())
+

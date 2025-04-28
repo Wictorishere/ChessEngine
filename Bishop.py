@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 import os
 
@@ -7,8 +8,8 @@ class Bishop:
         self.isWhite = isWhite
         self.position = position
         self.isKilled = False
-        img_path = os.path.join(os.path.dirname(__file__), "Media", "WBImage.png" if isWhite else "BBImage.png")
-        self.image = QPixmap(img_path)
+        img_path = os.path.join(os.path.dirname(__file__), "Media", "WBImage1.png" if isWhite else "BBImage1.png")
+        self.image = QPixmap(img_path).scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
     def move(self, position, board):
         row, col = position

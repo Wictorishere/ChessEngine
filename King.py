@@ -1,3 +1,4 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 import os
 
@@ -7,8 +8,8 @@ class King:
         self.isWhite = isWhite
         self.position = position
         self.isKilled = False
-        img_path = os.path.join(os.path.dirname(__file__), "Media", "WKImage.png" if isWhite else "BKImage.png")
-        self.image = QPixmap(img_path)
+        img_path = os.path.join(os.path.dirname(__file__), "Media", "WKImage1.png" if isWhite else "BKImage1.png")
+        self.image = QPixmap(img_path).scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.hasmoved = False
 
     def move(self, position, board):
